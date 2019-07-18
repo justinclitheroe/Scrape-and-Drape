@@ -1,24 +1,6 @@
 from lxml import html
 from datetime import datetime
-
-
-# Parses the most general kind of table
-def parse_basic_tables(body, d, table_name, table_range=None, alt_title=""):
-    if table_range is not None:
-        for i in range(table_range[0], table_range[1]):
-            if not alt_title:
-                title = body.xpath('//*[@id="{}{}"]/thead/tr/th[1]'.format(table_name, i))
-            rows = body.findall('.//*[@id="{}{}"]/tbody/tr'.format(table_name, i))
-            for j in rows:
-                d["{}_{}".format(title[0].text_content(), j[0].text_content())] = int(j[1].text_content())
-    # In case there's only one table and it doesn't follow the TABLENAME# naming convention
-    else:
-        if not alt_title:
-            title = body.xpath('//*[@id="{}"]/thead/tr/th[1]'.format(table_name))
-        rows = body.findall('.//*[@id="{}"]/tbody/tr'.format(table_name))
-        for j in rows:
-            d["{}_{}".format(title[0].text_content(), j[0].text_content())] = int(j[1].text_content())
-    return d
+from parsers import *
 
 
 def handle_s3_html(files):
@@ -49,6 +31,8 @@ def handle_lasso_html(files):
         lasso_dict = dict()
         lasso_dict = parse_basic_tables(body, lasso_dict, table_name="apiTable", table_range=(0, 8))
         lasso_dict = parse_basic_tables(body, lasso_dict, table_name="componentTable")
+        lasso_dict = parse_three_col_table(body, lasso_dict, table_name="errorTable", alt_title="ErrorCode->Message")
+        lasso_dict = parse_basic_tables(body, lasso_dict, table_name="attackTable", alt_title="Vulnerabilities")
 
         lasso_dict["TOTAL_ERRORS"] = int(body.xpath('/html/body/div[4]/h3')[0].text_content().split(":")[1])
         # lasso_dict[""] = int(body.xpath('')[0].text_content())
@@ -56,3 +40,17 @@ def handle_lasso_html(files):
         lasso_dict["DATE"] = datetime.strptime(file[-13:-5], "%Y%m%d")
         lasso_list.append(lasso_dict)
     return lasso_list
+
+
+def handle_mchec_html(files):
+    mchec_list = []
+    for file in files:
+        with open(file, "r") as f:
+            body = f.read()
+        body = html.fromstring(body)
+        mchec_dict = dict()
+        mchec_dict = parse_basic_tables(body, mchec_dict, table_name="apiTable", table_range=(0, 8))
+
+        mchec_dict["DATE"] = datetime.strptime(file[-13:-5], "%Y%m%d")
+        mchec_list.append(mchec_dict)
+    return mchec_list
