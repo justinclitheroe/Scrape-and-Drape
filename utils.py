@@ -1,4 +1,6 @@
 import os
+import re
+
 import pandas as pd
 from handlers import *
 
@@ -17,11 +19,15 @@ def get_files_list(app):
 def handle_html(file_names, appname):
     """
     Handles the routing for the frame creators
+
+    Python doesn't have cases which is sad in this one context
     """
     if appname is "s3":
         data = handle_s3_html(file_names)
     elif appname is "lasso":
         data = handle_lasso_html(file_names)
+    elif appname is "mchec":
+        data = handle_mchec_html(file_names)
     return data
 
 
@@ -63,7 +69,8 @@ def frame_filter(frame, filter=""):
     """
     returns a list of column names based on a filter
     """
-    return [col for col in frame if col.startswith(filter)]
+    regex = re.compile(r'{}'.format(filter))
+    return [col for col in frame.columns if re.search(regex, col)]
 
 
 def remove_outliers(frame):
@@ -76,7 +83,7 @@ def remove_outliers(frame):
     return frame
 
 
-def final_touches(frame, view_cols="", remove_cols="", start_date="", end_date=""):
+def final_touches(frame, view_cols="", remove_cols="", start_date="", end_date="", trim_outliers=True):
     """
     takes a frame and changes it based on the parameters given,
     the *_cols parameters control which columns are taken out
@@ -94,7 +101,8 @@ def final_touches(frame, view_cols="", remove_cols="", start_date="", end_date="
         frame = frame.loc[:, view_cols]
     if remove_cols:
         frame = frame.loc[:, frame.columns.difference(["DATE"] + remove_cols)]
-    frame = remove_outliers(frame)
+    if trim_outliers:
+        frame = remove_outliers(frame)
     return frame
 
 
