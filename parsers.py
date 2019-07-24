@@ -33,8 +33,6 @@ def parse_basic_tables(body, d, table_name, table_range=None, alt_title=""):
     return d
 
 
-
-
 # This parser works on a table with format text/numeric/numeric data
 def parse_mchec_req_res_table(body, d, title, table_name):
     rows = body.findall('.//*[@id="{}"]/tbody/tr'.format(table_name))
@@ -46,34 +44,15 @@ def parse_mchec_req_res_table(body, d, title, table_name):
 
 def parse_mchec_component_table(body, d, title):
     """
-    Okay here we go this parser is bonkers enough to get its own block documentation
-
-    because of what was likely an imperceptible error when writing on the log generation side of things,
-    after about 3 hours of reading tool documentation, I've realized that the problem is that there aren't any
-    </tr> closing tags, The solution would to lookahead, but the way that the library works is that it actually
-    ends the list at the closing tag, so they're pretty much unreachable
-
-    the likely solution is to write something to clean the files, which I was already probably gonna do to cut the
-    file sizes down
+    This parser will not work unless mchec files are cleaned using the mchec cleaner in "fixers"
     """
     rows = body.findall('.//table[2]/tbody/tr')
     component_name = ""
     for j in rows:
-        index = 0
-        more = True
         if j[0].text_content():
             component_name = j[0].text_content()
-            print("new component detected changing to", component_name)
-        while more:
-            try:
-                print(j[(index * 4) + 0].text_content(), j[(index * 4) + 1].text_content(),
-                      j[(index * 4) + 2].text_content(), j[(index * 4) + 3].text_content())
-                index += 1
-            except:
-                more = False
-
-            # d["{}_{}{}REQ".format(title, j[0].text_content(), j[1].text_content())] = int(j[2].text_content())
-            # d["{}_{}{}REQ".format(title, j[0].text_content(), j[1].text_content())] = float(j[3].text_content())
+        d["{}{}_COUNT_{}".format(title, component_name, j[1].text_content())] = int(j[2].text_content())
+        d["{}{}_RES(ms)_{}".format(title, component_name, j[1].text_content())] = float(j[3].text_content())
     return d
 
 

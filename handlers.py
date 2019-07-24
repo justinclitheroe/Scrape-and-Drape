@@ -1,8 +1,7 @@
-from lxml import html
-from datetime import datetime
-from parsers import *
-
 """
+Handlers exist to create the list of dictionaries that will eventually become a panda frame using the parsers found
+in parsers.py
+
 All Handlers follow roughly the same format
     for file_name in list of files:
         open file at filename
@@ -13,6 +12,10 @@ All Handlers follow roughly the same format
         append the dict to the end of the list (best practice for fast dataframe creation)
     return proto-frame
 """
+from datetime import datetime
+from fixers import *
+from parsers import *
+
 
 
 def handle_s3_html(files):
@@ -59,16 +62,14 @@ def handle_mchec_html(files):
     for file in files:
         with open(file, "r") as f:
             body = f.read()
-        body = html.fromstring(body)
         mchec_dict = dict()
-        # mchec_dict = parse_mchec_req_res_table(body, mchec_dict, title="REQRES", table_name="reqRespTable")
+        body = html.fromstring(body)
+        mchec_dict = parse_mchec_req_res_table(body, mchec_dict, title="REQRES", table_name="reqRespTable")
         # This function is busted for now
-        # mchec_dict = parse_mchec_component_table(body, mchec_dict, title="ComponentResults")
-        # mchec_dict = parse_three_col_table(body, mchec_dict, "Error", "errorTable")
-        rows = body.findall('.//*[@id="{}"]/tbody/tr'.format('platformTable'))
-        for i in rows:
-            print(i)
-        # mchec_dict = parse_basic_tables(body, mchec_dict, table_name="platformTable", alt_title="PlatformType")
+        mchec_dict = parse_mchec_component_table(body, mchec_dict, title="ComponentResults")
+        mchec_dict = parse_three_col_table(body, mchec_dict, "Error", "errorTable")
+        mchec_dict = parse_basic_tables(body, mchec_dict, table_name="platformTable", alt_title="PlatformType")
+        mchec_dict = parse_three_col_table(body, mchec_dict, "NotificationCode", "notificationTable")
         mchec_dict["DATE"] = datetime.strptime(file[-13:-5], "%Y%m%d")
         mchec_list.append(mchec_dict)
     return mchec_list
