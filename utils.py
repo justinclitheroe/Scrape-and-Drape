@@ -1,15 +1,21 @@
-import os
-import re
+"""
+This file holds all of the functions that don't really fit anywhere else, that said, I've tried to order them
+in a way that if you read them in order top to bottom, a lot of the project's structure in general would make more sense
+"""
 
 import pandas as pd
+from numpy import abs
 from handlers import *
 
 
-def get_files_list(app):
+def get_files_list(app, formatted=True):
     """
     Gets a list of file paths for the  handlers (Not the files themselves)
     """
-    path = "logs/" + app
+    if formatted:
+        path = "logs/formatted_logs/" + app
+    else:
+        path = "logs/unformatted_logs/" + app
     files = [os.path.join(os.getcwd(), path, f)
              for f in os.listdir(path)
              if os.path.isfile(os.path.join(path, f))]
@@ -28,6 +34,22 @@ def handle_html(file_names, appname):
         data = handle_lasso_html(file_names)
     elif appname is "mchec":
         data = handle_mchec_html(file_names)
+    elif appname is "pdr":
+        data = handle_pdr_html(file_names)
+    elif appname is "scomp":
+        data = handle_scomp_html(file_names)
+    elif appname is "sphinx":
+        data = handle_sphinx_html(file_names)
+    elif appname is "imsws":
+        data = handle_imsws_html(file_names)
+    elif appname is "mchaos":
+        data = handle_mchaos_html(file_names)
+    elif appname is "oauth":
+        data = handle_oauth_html(file_names)
+    elif appname is "ps3":
+        data = handle_ps3_html(file_names)
+    elif appname is "profilerest":
+        data = handle_profilerest_html(file_names)
     return data
 
 
@@ -61,7 +83,10 @@ def get_filters(frame, show="", hide=""):
     gets your column filters for "final_touches()
     """
     show_filter = frame_filter(frame, filter=show)
-    hide_filter = frame_filter(frame, filter=hide)
+    if hide == "":
+        hide_filter = []
+    else:
+        hide_filter = frame_filter(frame, filter=hide)
     return show_filter, hide_filter
 
 
@@ -77,7 +102,6 @@ def remove_outliers(frame):
     """
     Removes any data that's outside of 3 standard deviations in either direction
     """
-    from numpy import abs
     frame = frame[abs(frame - frame.mean()) <= (3 * frame.std())]
     frame = frame.fillna(frame.mean())
     return frame

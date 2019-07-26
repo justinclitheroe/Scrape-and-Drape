@@ -1,8 +1,9 @@
 """
 The parsers responsible for getting data from the html
 
-Frustratingly similar for what they do, lots of them are likely one offs because
-the reports don't follow any kind of uniform layout
+Frustratingly similar for what they do, lots of them are one offs because
+the reports don't follow any kind of uniform layout and frequently don't follow
+best practices for html and are fairly annoying to parse in a sane manner
 
 typically the parsers are fairly simple
     Get rows
@@ -18,68 +19,68 @@ def parse_basic_tables(body, d, table_name, table_range=None, alt_title=""):
     if table_range is not None:
         for i in range(table_range[0], table_range[1]):
             if not alt_title:
-                title = body.xpath('//*[@id="{}{}"]/thead/tr/th[1]'.format(table_name, i))[0].text_content()
+                test = f"{table_name}{i}"
+                title = body.xpath(f'//*[@id="{table_name}{i}"]/thead/tr/th[1]')[0].text_content()
             else:
                 title = alt_title
-            rows = body.findall('.//*[@id="{}{}"]/tbody/tr'.format(table_name, i))
+            rows = body.findall(f'.//*[@id="{table_name}{i}"]/tbody/tr')
             for j in rows:
-                d["{}_{}".format(title, j[0].text_content())] = int(j[1].text_content())
+                d[f"{title}_{j[0].text_content()}"] = int(j[1].text_content())
     # In case there's only one table and it doesn't follow the TABLENAME# naming convention
     else:
         title = alt_title
-        rows = body.findall('.//*[@id="{}"]/tbody/tr'.format(table_name))
+        rows = body.findall(f'.//*[@id="{table_name}"]/tbody/tr')
         for j in rows:
-            d["{}_{}".format(title, j[0].text_content())] = int(j[1].text_content())
+            d[f"{title}_{j[0].text_content()}"] = int(j[1].text_content())
     return d
 
 
-
-
-# This parser works on a table with format text/numeric/numeric data
-def parse_mchec_req_res_table(body, d, title, table_name):
-    rows = body.findall('.//*[@id="{}"]/tbody/tr'.format(table_name))
-    for j in rows:
-        d["{}_REQ_{}".format(title, j[0].text_content())] = int(j[1].text_content())
-        d["{}_RES(ms)_{}".format(title, j[0].text_content())] = float(j[2].text_content())
-    return d
+def parse_imsws_error_tables(body, d):
+    for i in range(0, 9):
+        table_name = f"errorTable{i}"
+        title = body.xpath(f'//*[@id="{table_name}"]/thead/tr/th[1]')[0].text_content()
+        rows = body.findall(f'.//*[@id="{table_name}"]/tbody/tr')
+        for j in rows:
+            d[f"IMSWSErrors_{title}_{j[0].text_content()}"] = int(j[1].text_content())
+        return d
 
 
 def parse_mchec_component_table(body, d, title):
     """
-    Okay here we go this parser is bonkers enough to get its own block documentation
-
-    because of what was likely an imperceptible error when writing on the log generation side of things,
-    after about 3 hours of reading tool documentation, I've realized that the problem is that there aren't any
-    </tr> closing tags, The solution would to lookahead, but the way that the library works is that it actually
-    ends the list at the closing tag, so they're pretty much unreachable
-
-    the likely solution is to write something to clean the files, which I was already probably gonna do to cut the
-    file sizes down
+    This parser will not work unless mchec files are cleaned using the mchec cleaner in "fixers"
     """
     rows = body.findall('.//table[2]/tbody/tr')
     component_name = ""
     for j in rows:
-        index = 0
-        more = True
         if j[0].text_content():
             component_name = j[0].text_content()
-            print("new component detected changing to", component_name)
-        while more:
-            try:
-                print(j[(index * 4) + 0].text_content(), j[(index * 4) + 1].text_content(),
-                      j[(index * 4) + 2].text_content(), j[(index * 4) + 3].text_content())
-                index += 1
-            except:
-                more = False
-
-            # d["{}_{}{}REQ".format(title, j[0].text_content(), j[1].text_content())] = int(j[2].text_content())
-            # d["{}_{}{}REQ".format(title, j[0].text_content(), j[1].text_content())] = float(j[3].text_content())
+        d[f"{title}{component_name}_COUNT_{j[1].text_content()}"] = int(j[2].text_content())
+        d[f"{title}{component_name}_RES(ms)_{j[1].text_content()}"] = float(j[3].text_content())
     return d
 
 
 # This parser works on a table with format text/text/numeric data
 def parse_three_col_table(body, d, title, table_name):
-    rows = body.findall('.//*[@id="{}"]/tbody/tr'.format(table_name))
+    rows = body.findall(f'.//*[@id="{table_name}"]/tbody/tr')
     for j in rows:
-        d["{}_{}".format(title, j[0].text_content())] = int(j[2].text_content())
+        d[f"{title}_{j[0].text_content()}"] = int(j[2].text_content())
+    return d
+
+
+def parse_scomp_login_stats(body, d, title, table_name):
+    rows = body.findall(f'.//*[@id="{table_name}"]/tbody/tr')
+    for j in rows:
+        d[f"{title}_{j[0].text_content()}_{j[1].text_content()}_Successful"] = int(j[2].text_content())
+        d[f"{title}_{j[0].text_content()}_{j[1].text_content()}_Failed"] = float(j[3].text_content())
+    return d
+
+
+def parse_three_col_two_data_table(body, d, title, table_name,
+                                   col_names=["", ""]):
+    if col_names[0] == "" or col_names[1] == "":
+        raise ValueError("No Column names given")
+    rows = body.findall(f'.//*[@id="{table_name}"]/tbody/tr')
+    for j in rows:
+        d[f"{title}_{j[0].text_content()}_{col_names[0]}"] = int(j[1].text_content())
+        d[f"{title}_{j[0].text_content()}_{col_names[1]}"] = float(j[2].text_content())
     return d
