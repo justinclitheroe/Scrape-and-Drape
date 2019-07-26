@@ -34,6 +34,22 @@ def handle_html(file_names, appname):
         data = handle_lasso_html(file_names)
     elif appname is "mchec":
         data = handle_mchec_html(file_names)
+    elif appname is "pdr":
+        data = handle_pdr_html(file_names)
+    elif appname is "scomp":
+        data = handle_scomp_html(file_names)
+    elif appname is "sphinx":
+        data = handle_sphinx_html(file_names)
+    elif appname is "imsws":
+        data = handle_imsws_html(file_names)
+    elif appname is "mchaos":
+        data = handle_mchaos_html(file_names)
+    elif appname is "oauth":
+        data = handle_oauth_html(file_names)
+    elif appname is "ps3":
+        data = handle_ps3_html(file_names)
+    elif appname is "profilerest":
+        data = handle_profilerest_html(file_names)
     return data
 
 
@@ -67,7 +83,10 @@ def get_filters(frame, show="", hide=""):
     gets your column filters for "final_touches()
     """
     show_filter = frame_filter(frame, filter=show)
-    hide_filter = frame_filter(frame, filter=hide)
+    if hide == "":
+        hide_filter = []
+    else:
+        hide_filter = frame_filter(frame, filter=hide)
     return show_filter, hide_filter
 
 

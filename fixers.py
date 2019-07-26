@@ -48,6 +48,19 @@ def remove_scripts_and_style(body):
     return cleaner.clean_html(body)
 
 
+def fix_pdr_server_tables_and_NA(body):
+    body_string = html.tostring(body).decode()
+
+    remove_empty_trs = re.compile(r"<tr><td> </td><td> </td></tr>")
+    body_string = re.sub(remove_empty_trs, r"", body_string)
+
+    na_to_zero = re.compile(r"N/A")
+    body_string = re.sub(na_to_zero, r"0", body_string)
+
+    body = html.fromstring(body_string)
+    return body
+
+
 def check_and_fix_unformatted_logs(apps):
     for app in apps:
         try:
@@ -63,6 +76,8 @@ def check_and_fix_unformatted_logs(apps):
             body = remove_scripts_and_style(body)
             if app == "mchec":
                 body = fix_mchec_error_tables(body)
+            elif app == "pdr":
+                body = fix_pdr_server_tables_and_NA(body)
             new_file_name = os.path.join(os.getcwd(), "logs", "formatted_logs", app, file.split('\\')[-1])
             with open(new_file_name, "w+") as f:
                 f.write(html.tostring(body, pretty_print=True).decode())
